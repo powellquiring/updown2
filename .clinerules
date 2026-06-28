@@ -1,0 +1,41 @@
+# Cline rules for this repository
+
+## Versioning policy: always run the latest LTS / stable
+
+When proposing or applying any version change in this repository, follow these rules carefully. Verify with live registry/API queries — do not rely on training-data knowledge for current version numbers.
+
+### 1. Node.js
+- Pin to the **latest patch release of the current LTS major** (the line whose `lts` field in https://nodejs.org/dist/index.json is a non-false string codename, e.g. "Krypton").
+- Update **both** `engines.node` and `volta.node` in `package.json` to the exact same version. Never use a range (no `^`, `~`, `>=`).
+- Never pin to a non-LTS line: odd majors (21, 23, 25, …) are never LTS; even majors are "current" until they enter LTS roughly 6 months after release.
+- Always check by fetching `https://nodejs.org/dist/index.json` and filtering for the current LTS line. Do not rely on conversation history or training data.
+
+### 2. npm packages
+- Pin to the **latest stable release** of each package, where "stable" means the version returned by `npm view <pkg> dist-tags.latest` — never `next`, `beta`, `rc`, `alpha`, `canary`, `experimental`, or any other dist-tag.
+- For packages with semver range operators already in `package.json` (`^`, `~`), preserve the existing operator unless the user explicitly asks to change pin style — but the **floor** of the range must equal the current `latest`.
+- For packages pinned exactly (no operator), keep them pinned exactly to the new `latest`.
+- Always check the registry live via `npm view <pkg> dist-tags --json`. Do not guess from training data; npm package versions change daily.
+
+### 3. GitHub Actions
+- Pin third-party actions to their latest major-version tag (`@vN`).
+- When a new major is released that bumps the action's host runtime to a still-supported Node version (see GitHub's Actions runner deprecation policy), upgrade to it.
+- Verify the current latest major by checking the action's GitHub releases page (e.g. https://github.com/actions/checkout/releases).
+
+### 4. Compatibility check before bumping
+- Before applying any bump, verify the new version's `engines.node` constraint (or equivalent for non-npm tools) is compatible with this project's pinned Node version.
+- This project uses `.npmrc` with `engine-strict=true`, so any mismatch will **hard-fail** `npm ci`. Catch this at proposal time, not install time.
+
+### 5. Verification before declaring a change complete
+- For npm changes: run `rm -rf node_modules dist && npm ci && npm run build` and confirm both succeed with zero errors.
+- For Node version changes: also run `volta install node@<version>` locally so the shell session is on the new version, then verify `node --version` matches the pin.
+- For Actions changes: parse the YAML (`python3 -c "import yaml; yaml.safe_load(open(...))"`) to confirm validity. Note that GitHub Actions cannot be executed locally; rely on the next CI run for runtime validation.
+
+### 6. When unsure, ask
+- If bumping to the latest LTS / stable would cross a **major** version boundary in any package, summarize the breaking changes from the package's CHANGELOG/release notes and ask the user before applying.
+- If two desired pins are mutually incompatible (e.g. package A requires Node ≥ X, but the latest LTS is Node < X), surface the conflict and propose resolutions rather than picking one silently.
+
+### 7. Audit-on-request
+- When the user asks for an audit, version check, or "what's out of date", produce a report comparing every dependency in `package.json` against `npm view <pkg> dist-tags.latest` (and `engines.node` vs. latest LTS), without making any changes. Let the user decide what to bump.
+
+## Related files
+- `docs/cicd_dev.md` — human-readable record of versioning *decisions* made (history); this file (`.clinerules`) is the *policy* (current rules). When they appear to conflict, this file wins and `docs/cicd_dev.md` should be updated.
