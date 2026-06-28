@@ -1,6 +1,6 @@
 {
   "name": "updown2",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -39,6 +39,9 @@
     "vue-tsc": "^3.3.5"
   },
   "engines": {
-    "node": "^22.18.0 || >=24.12.0"
+    "node": "26.4.0"
+  },
+  "volta": {
+    "node": "26.4.0"
   }
 }
